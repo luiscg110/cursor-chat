@@ -1,0 +1,16 @@
+{
+  "name": "cursor-chat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone Cursor chat app — talk to Cursor without focusing the Cursor IDE",
+  "scripts": {
+    "start": "node scripts/cursor-chat-desktop.mjs",
+    "chat": "node scripts/cursor-chat-desktop.mjs",
+    "app": "open -n apps/CursorChat.app",
+    "app:build": "bash scripts/build-cursor-chat-app.sh"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.18"
+  }
+}

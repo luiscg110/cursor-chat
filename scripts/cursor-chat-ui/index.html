@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cursor Chat</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Cursor Chat</h1>
+      <p class="sub">Habla con Cursor sin abrir Cursor. Puedes quedarte en otra app.</p>
+    </div>
+    <div class="status" id="status">conectando…</div>
+  </header>
+
+  <main class="chat">
+    <div class="messages" id="messages" aria-live="polite">
+      <div class="empty" id="empty">
+        Escribe abajo y pulsa Enviar.<br />
+        Luego puedes irte a Safari, Slack u otra ventana — te avisamos cuando termine.
+      </div>
+    </div>
+
+    <div class="composer">
+      <textarea id="input" rows="3" placeholder="Pregunta o tarea para Cursor…"></textarea>
+      <div class="bar">
+        <label class="check">
+          <input id="cloud" type="checkbox" />
+          También en Cursor Agents
+        </label>
+        <div class="actions">
+          <button type="button" id="sendBtn" class="primary">Enviar</button>
+          <button type="button" id="newBtn" class="ghost">Nuevo</button>
+          <button type="button" id="stopBtn" class="danger" disabled>Detener</button>
+        </div>
+      </div>
+      <div class="meta" id="meta"></div>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
