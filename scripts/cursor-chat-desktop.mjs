@@ -18,6 +18,8 @@ import { resolve, dirname, join, extname } from "path";
 import { fileURLToPath } from "url";
 import { spawn, execFileSync } from "child_process";
 import { createCursorChatRuntime } from "./cursor-chat-runtime.mjs";
+import { createContinuousLoop } from "./continuous-loop.mjs";
+import { continuousPaths, loadDiscoveries } from "./discoveries-store.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -72,6 +74,14 @@ const cursorChat = createCursorChatRuntime({
   broadcast,
   notify: (title, body) => notifyMacOS(title, body),
 });
+
+const continuous = createContinuousLoop({
+  send: (args) => cursorChat.send(args),
+  snapshot: () => cursorChat.snapshot(),
+  broadcast,
+  notify: (title, body) => notifyMacOS(title, body),
+});
+continuous.maybeResume();
 
 function readJson(req) {
   return new Promise((resolvePromise, reject) => {
@@ -242,6 +252,43 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === "/api/continuous" && req.method === "GET") {
+    sendJson(res, 200, {
+      ok: true,
+      ...continuous.status(),
+      discoveries: loadDiscoveries(),
+      paths: continuousPaths(),
+    });
+    return;
+  }
+
+  if (pathname === "/api/continuous/start" && req.method === "POST") {
+    try {
+      const body = await readJson(req).catch(() => ({}));
+      const result = await continuous.start({
+        hours: body.hours ?? 24,
+        pauseMs: body.pauseMs,
+        focus: body.focus || "",
+        cloud: Boolean(body.cloud),
+        chatId: body.chatId || "",
+      });
+      sendJson(res, result.ok ? 200 : 409, result);
+    } catch (err) {
+      sendJson(res, 400, { ok: false, error: err.message });
+    }
+    return;
+  }
+
+  if (pathname === "/api/continuous/stop" && req.method === "POST") {
+    try {
+      const result = await continuous.stop("user_stop");
+      sendJson(res, 200, result);
+    } catch (err) {
+      sendJson(res, 400, { ok: false, error: err.message });
+    }
+    return;
+  }
+
   if (pathname === "/api/events" && req.method === "GET") {
     res.writeHead(200, {
       "Content-Type": "text/event-stream; charset=utf-8",
@@ -254,6 +301,7 @@ const server = createServer(async (req, res) => {
         type: "hello",
         text: "Cursor Chat listo — puedes trabajar en otra app",
         cursorChat: cursorChat.snapshot(),
+        continuous: continuous.status(),
       })}\n\n`
     );
     sseClients.add(res);

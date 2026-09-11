@@ -8,7 +8,9 @@
     "start": "node scripts/cursor-chat-desktop.mjs",
     "chat": "node scripts/cursor-chat-desktop.mjs",
     "app": "open -n apps/CursorChat.app",
-    "app:build": "bash scripts/build-cursor-chat-app.sh"
+    "app:build": "bash scripts/build-cursor-chat-app.sh",
+    "improve": "node scripts/run-continuous.mjs",
+    "improve:24h": "node scripts/run-continuous.mjs --hours 24"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.18"

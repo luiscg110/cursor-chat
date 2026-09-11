@@ -10,7 +10,7 @@
   <header class="top">
     <div>
       <h1>Cursor Chat</h1>
-      <p class="sub">Habla con Cursor sin abrir Cursor. Puedes quedarte en otra app.</p>
+      <p class="sub">Agente Cursor (modo agent): herramientas y pasos, sin abrir Cursor.</p>
     </div>
     <div class="status" id="status">conectando…</div>
   </header>
@@ -28,7 +28,7 @@
       <div class="bar">
         <label class="check">
           <input id="cloud" type="checkbox" />
-          También en Cursor Agents
+          Cloud (Cursor Agents) — deja sin marcar para local
         </label>
         <div class="actions">
           <button type="button" id="sendBtn" class="primary">Enviar</button>
@@ -38,6 +38,25 @@
       </div>
       <div class="meta" id="meta"></div>
     </div>
+
+    <section class="continuous" id="continuousPanel">
+      <div class="cont-head">
+        <strong>Mejora continua 24h</strong>
+        <span class="opt">Habla como humano · implementa → prueba → mide → optimiza · guarda hallazgos</span>
+      </div>
+      <input id="focusInput" type="text" placeholder="Foco opcional (ej: velocidad del chat, playbook, tests)" />
+      <div class="bar">
+        <label class="check">
+          Horas
+          <input id="hoursInput" type="number" min="1" max="72" value="24" style="width:4.5rem;margin-left:6px" />
+        </label>
+        <div class="actions">
+          <button type="button" id="contStartBtn" class="primary">Arrancar 24h</button>
+          <button type="button" id="contStopBtn" class="danger" disabled>Parar</button>
+        </div>
+      </div>
+      <div class="meta" id="contMeta">Idle — los hallazgos quedan en logs/continuous/</div>
+    </section>
   </main>
 
   <script src="/app.js"></script>

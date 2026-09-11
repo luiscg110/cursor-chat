@@ -118,6 +118,22 @@ h1 {
   color: #f0a0a0;
 }
 
+.bubble.tool,
+.bubble.thinking,
+.bubble.task {
+  justify-self: start;
+  max-width: 96%;
+  font-size: 12px;
+  padding: 6px 10px;
+  color: var(--muted);
+  background: #141820;
+  border: 1px dashed var(--line);
+}
+
+.bubble.tool { color: #8ec5ff; border-color: #2f4f6b; }
+.bubble.task { color: #f0d08a; border-color: #6b5530; }
+.bubble.thinking { color: #9aa3b2; }
+
 .composer {
   display: grid;
   gap: 10px;
@@ -203,6 +219,42 @@ button.danger {
   font-size: 12px;
   color: var(--muted);
   min-height: 1.2em;
+}
+
+.continuous {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #141820;
+}
+
+.cont-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+.cont-head .opt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.continuous input[type="text"],
+.continuous input[type="number"] {
+  font: inherit;
+  color: var(--text);
+  background: #0f1115;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.continuous input[type="text"] {
+  width: 100%;
 }
 
 @media (max-width: 640px) {
