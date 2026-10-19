@@ -12,13 +12,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
   private var server: Process?
   private var healthTimer: Timer?
   private var healthAttempts = 0
+  private var healthInFlight = false
+  private var ownsServer = false
+  private var uiLoaded = false
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.regular)
     buildWindow()
-    startDesktopServer()
-    beginHealthPolling()
     NSApp.activate(ignoringOtherApps: true)
+
+    // Prefer an already-healthy server (macOS window restore / second launch)
+    checkHealth { [weak self] ok in
+      guard let self else { return }
+      if ok {
+        self.loadUI()
+        return
+      }
+      // Port may be occupied by a stuck process — only then start ours
+      self.startDesktopServer()
+      self.beginHealthPolling()
+    }
   }
 
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -33,10 +46,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
   func applicationWillTerminate(_ notification: Notification) {
     healthTimer?.invalidate()
-    if let server, server.isRunning {
+    // Keep Node alive if a 24h continuous session is in progress — closing the
+    // window must not abort mid-turn (that left state.running=true with no server).
+    if ownsServer, let server, server.isRunning {
+      if continuousRunningOnDisk() {
+        // Detach: Node keeps serving; reopen the app to reconnect.
+        ownsServer = false
+        self.server = nil
+        return
+      }
       server.terminate()
       server.waitUntilExit()
     }
+  }
+
+  /// Reads logs/continuous/state.json without requiring HTTP (server may be busy).
+  private func continuousRunningOnDisk() -> Bool {
+    guard let root = repoRoot() else { return false }
+    let path = root.appendingPathComponent("logs/continuous/state.json")
+    guard let data = try? Data(contentsOf: path),
+          let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let running = obj["running"] as? Bool
+    else { return false }
+    if !running { return false }
+    if let ends = obj["endsAt"] as? String {
+      let formatter = ISO8601DateFormatter()
+      formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+      if let endDate = formatter.date(from: ends) ?? ISO8601DateFormatter().date(from: ends) {
+        return endDate > Date()
+      }
+    }
+    return true
   }
 
   private func buildWindow() {
@@ -62,6 +102,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
     let loading = URLRequest(url: URL(string: "data:text/html,<html><body style='font-family:-apple-system;padding:40px;color:#333'>Iniciando Cursor Chat…</body></html>")!)
     webView.load(loading)
+  }
+
+  private func loadUI() {
+    guard !uiLoaded else { return }
+    uiLoaded = true
+    healthTimer?.invalidate()
+    healthTimer = nil
+    webView.load(URLRequest(url: uiURL))
+    window.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
   }
 
   private func repoRoot() -> URL? {
@@ -188,38 +238,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     process.environment = env
     process.standardOutput = FileHandle.standardOutput
     process.standardError = FileHandle.standardError
-    process.terminationHandler = { _ in
+    process.terminationHandler = { [weak self] proc in
       DispatchQueue.main.async {
-        NSApp.terminate(nil)
+        guard let self else { return }
+        // exit 0 = another healthy instance already owns the port
+        if proc.terminationStatus == 0 {
+          self.ownsServer = false
+          self.server = nil
+          self.checkHealth { ok in
+            if ok {
+              self.loadUI()
+            } else {
+              self.alertAndQuit("El servidor salió sin quedar disponible en http://\(uiHost):\(uiPort).")
+            }
+          }
+          return
+        }
+        if !self.uiLoaded {
+          self.alertAndQuit("El servidor Node terminó inesperadamente (código \(proc.terminationStatus)).")
+        }
       }
     }
 
     do {
       try process.run()
       server = process
+      ownsServer = true
     } catch {
       alertAndQuit("No se pudo iniciar el servidor: \(error.localizedDescription)")
     }
   }
 
   private func beginHealthPolling() {
-    healthTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] timer in
+    healthAttempts = 0
+    healthInFlight = false
+    // Start at 0.4s; no overlapping requests
+    healthTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] timer in
       guard let self else {
         timer.invalidate()
         return
       }
+      if self.uiLoaded {
+        timer.invalidate()
+        return
+      }
+      if self.healthInFlight { return }
+
       self.healthAttempts += 1
-      if self.healthAttempts > 80 {
+      if self.healthAttempts > 50 {
         timer.invalidate()
         self.alertAndQuit("El servidor no respondió en http://\(uiHost):\(uiPort).")
         return
       }
-      self.checkHealth { ok in
+
+      self.healthInFlight = true
+      self.checkHealth { [weak self] ok in
+        guard let self else { return }
+        self.healthInFlight = false
         if ok {
-          timer.invalidate()
-          self.webView.load(URLRequest(url: uiURL))
-          self.window.makeKeyAndOrderFront(nil)
-          NSApp.activate(ignoringOtherApps: true)
+          self.loadUI()
         }
       }
     }
@@ -227,10 +304,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
   private func checkHealth(completion: @escaping (Bool) -> Void) {
     var request = URLRequest(url: URL(string: "http://\(uiHost):\(uiPort)/api/health")!)
-    request.timeoutInterval = 0.8
-    URLSession.shared.dataTask(with: request) { _, response, _ in
-      let ok = (response as? HTTPURLResponse)?.statusCode == 200
-      DispatchQueue.main.async { completion(ok) }
+    request.timeoutInterval = 0.6
+    request.cachePolicy = .reloadIgnoringLocalCacheData
+    URLSession.shared.dataTask(with: request) { data, response, _ in
+      let code = (response as? HTTPURLResponse)?.statusCode == 200
+      var appOk = false
+      if let data,
+         let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+         let app = obj["app"] as? String {
+        appOk = app == "cursor-chat"
+      }
+      DispatchQueue.main.async { completion(code && appOk) }
     }.resume()
   }
 }
@@ -238,4 +322,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
+// Regular policy → Dock icon + running indicator (dot) while open
+app.setActivationPolicy(.regular)
 app.run()

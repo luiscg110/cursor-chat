@@ -6,6 +6,8 @@
   <string>en</string>
   <key>CFBundleExecutable</key>
   <string>CursorChat</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>com.luiscastro.cursor-chat</string>
   <key>CFBundleInfoDictionaryVersion</key>
@@ -26,5 +28,7 @@
   <true/>
   <key>LSUIElement</key>
   <false/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
 </dict>
 </plist>

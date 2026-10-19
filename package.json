@@ -10,7 +10,9 @@
     "app": "open -n apps/CursorChat.app",
     "app:build": "bash scripts/build-cursor-chat-app.sh",
     "improve": "node scripts/run-continuous.mjs",
-    "improve:24h": "node scripts/run-continuous.mjs --hours 24"
+    "improve:24h": "node scripts/run-continuous.mjs --hours 24",
+    "eval": "node scripts/eval-harness.mjs",
+    "eval:live": "node scripts/eval-harness.mjs --live"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.18"

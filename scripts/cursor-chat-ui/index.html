@@ -16,35 +16,17 @@
   </header>
 
   <main class="chat">
-    <div class="messages" id="messages" aria-live="polite">
-      <div class="empty" id="empty">
-        Escribe abajo y pulsa Enviar.<br />
-        Luego puedes irte a Safari, Slack u otra ventana — te avisamos cuando termine.
-      </div>
-    </div>
-
-    <div class="composer">
-      <textarea id="input" rows="3" placeholder="Pregunta o tarea para Cursor…"></textarea>
-      <div class="bar">
-        <label class="check">
-          <input id="cloud" type="checkbox" />
-          Cloud (Cursor Agents) — deja sin marcar para local
-        </label>
-        <div class="actions">
-          <button type="button" id="sendBtn" class="primary">Enviar</button>
-          <button type="button" id="newBtn" class="ghost">Nuevo</button>
-          <button type="button" id="stopBtn" class="danger" disabled>Detener</button>
-        </div>
-      </div>
-      <div class="meta" id="meta"></div>
-    </div>
-
     <section class="continuous" id="continuousPanel">
       <div class="cont-head">
         <strong>Mejora continua 24h</strong>
-        <span class="opt">Habla como humano · implementa → prueba → mide → optimiza · guarda hallazgos</span>
+        <span class="opt" id="contLivePill">idle</span>
       </div>
-      <input id="focusInput" type="text" placeholder="Foco opcional (ej: velocidad del chat, playbook, tests)" />
+      <div class="cont-stats" id="contStats">
+        Ciclo — · Fase — · Tools — · Hallazgos —
+      </div>
+      <pre class="cont-prompt" id="contPrompt" aria-live="polite">Esperando turnos… Aquí verás el prompt que se envía y el progreso.</pre>
+      <input id="focusInput" type="text" placeholder="Foco (ej: inversión en acciones con IA)" value="Repo acciones-ia: paper Alpaca + noticias + análisis fundamental con IA. Documenta en docs/ADVANCES.md y docs/PLAYBOOK.md. Implementa, prueba (npm test, npm run cycle:dry), itera 24h. Nunca live sin confirmación." />
+      <input id="agentCwdInput" type="text" placeholder="Agent cwd (opcional)" value="/Users/luiscastro/Projects/acciones-ia" style="width:100%" />
       <div class="bar">
         <label class="check">
           Horas
@@ -57,6 +39,29 @@
       </div>
       <div class="meta" id="contMeta">Idle — los hallazgos quedan en logs/continuous/</div>
     </section>
+
+    <div class="messages" id="messages" aria-live="polite">
+      <div class="empty" id="empty">
+        El feed del agente aparece aquí en vivo: prompts, tools, thinking y respuestas.<br />
+        Arranca la mejora continua arriba o escribe una tarea abajo.
+      </div>
+    </div>
+
+    <div class="composer">
+      <textarea id="input" rows="2" placeholder="Pregunta o tarea manual (opcional)…"></textarea>
+      <div class="bar">
+        <label class="check">
+          <input id="cloud" type="checkbox" />
+          Cloud
+        </label>
+        <div class="actions">
+          <button type="button" id="sendBtn" class="primary">Enviar</button>
+          <button type="button" id="newBtn" class="ghost">Nuevo</button>
+          <button type="button" id="stopBtn" class="danger" disabled>Detener</button>
+        </div>
+      </div>
+      <div class="meta" id="meta"></div>
+    </div>
   </main>
 
   <script src="/app.js"></script>
